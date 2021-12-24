@@ -1,0 +1,28 @@
+{
+  "name": "cypress-test-as-prometheus-metrics",
+  "version": "1.0.0",
+  "description": "Run Cypress e2e test and expose test results as metrics in Prometheus format. Prometheus Pushgateway is also supported",
+  "main": "index.js",
+  "scripts": {
+    "test": "cross-env-shell node index.js run --browser chrome --headless"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Alexey-Tsarev/cypress-prom-metrics"
+  },
+  "keywords": [
+    "Cypress",
+    "Test",
+    "Prometheus",
+    "Pushgateway",
+    "Metrics"
+  ],
+  "author": "Alexey Tsarev <tsarev.alexey@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "cypress": "^7.7.0",
+    "express": "^4.17.2",
+    "prom-client": "^14.0.1"
+  }
+}

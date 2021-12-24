@@ -1,0 +1,75 @@
+version: '3.7'
+
+
+services:
+  # Cypress test results as Prometheus metrics
+  cypress-prom-metrics:
+    build:
+      context: .
+
+    image: alexeytsarev/cypress-prom-metrics:1.0.0
+    container_name: cypress-prom-metrics
+    restart: on-failure
+
+    environment:
+      - TERM=xterm
+      - DELAY_TIMEOUT=10000
+      - CYPRESS_BASE_URL=http://nginx-stable
+      - PUSH_GATEWAY_URL=http://push-gateway:9091
+      - PUSH_GATEWAY_JOB_NAME=test
+
+    labels:
+      - SERVICE_NAME=cypress-prom-metrics
+
+    logging:
+      driver: journald
+      options:
+        tag: cypress-prom-metrics
+
+    ports:
+      - "8080:8080"
+  # End Cypress test results as Prometheus metrics
+
+
+  # Nginx stable
+  nginx-stable:
+    image: nginx:stable
+    container_name: nginx-stable
+    restart: unless-stopped
+
+    environment:
+      - TERM=xterm
+
+    labels:
+      - SERVICE_NAME=nginx-stable
+
+    logging:
+      driver: journald
+      options:
+        tag: nginx-stable
+
+    ports:
+      - "80:80"
+  # End Nginx stable
+
+
+  # Prometheus PushGateway
+  push-gateway:
+    image: prom/pushgateway
+    container_name: push-gateway
+    restart: unless-stopped
+
+    environment:
+      - TERM=xterm
+
+    labels:
+      - SERVICE_NAME=push-gateway
+
+    logging:
+      driver: journald
+      options:
+        tag: push-gateway
+
+    ports:
+      - "9091:9091"
+  # End Nginx stable
