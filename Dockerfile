@@ -12,4 +12,4 @@ RUN --mount=type=cache,id=root_cache_nodejs,target=/root/cache/nodejs,sharing=pr
     cd - > /dev/null
 
 ENTRYPOINT [""]
-CMD ["node", "index.js", "run", "--browser", "chrome", "--headless"]
+CMD ["npm", "run", "e2e:prom:chrome"]

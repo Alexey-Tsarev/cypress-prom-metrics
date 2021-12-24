@@ -4,7 +4,7 @@
   "description": "Run Cypress e2e test and expose test results as metrics in Prometheus format. Prometheus Pushgateway is also supported",
   "main": "index.js",
   "scripts": {
-    "test": "cross-env-shell node index.js run --browser chrome --headless"
+    "e2e:prom:chrome": "cross-env-shell node index.js run --browser chrome --headless"
   },
   "repository": {
     "type": "git",
