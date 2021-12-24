@@ -13,7 +13,8 @@ services:
 
     environment:
       - TERM=xterm
-      - DELAY_TIMEOUT=10000
+      - DELAY_TIMEOUT=5000
+      - ITER_LIMIT=3
       - CYPRESS_BASE_URL=http://nginx-stable
       - PUSH_GATEWAY_URL=http://push-gateway:9091
       - PUSH_GATEWAY_JOB_NAME=test

@@ -4,7 +4,8 @@ const client = require('prom-client');
 
 // Default values
 const listenPort = process.env.LISTEN_PORT || 8080;
-const delayTimeout = process.env.DELAY_TIMEOUT || false;
+const delayTimeout = parseInt(process.env.DELAY_TIMEOUT) || 0;
+const iterLimit = parseInt(process.env.ITER_LIMIT) || false;
 const pushGatewayUrl = process.env.PUSH_GATEWAY_URL || false;
 const pushGatewayJobName = process.env.PUSH_GATEWAY_JOB_NAME || false;
 
@@ -37,10 +38,11 @@ const getArgs = async () => {
   console.log(`Cypress args: ${JSON.stringify(cypressArgs)}`);
 };
 
+let iter = 1;
 const callCypress = async () => {
-  console.log("Run Cypress")
+  console.log(`Run Cypress (iteration: ${iter})`);
   let r = await cypress.run(cypressArgs);
-  console.log("Cypress finished with results:")
+  console.log("Cypress finished with results:");
   console.log(r);
 
   await setMetricsFromResult(r);
@@ -58,9 +60,10 @@ const callCypress = async () => {
       });
   }
 
-  if (delayTimeout !== false) {
+  if ((iterLimit === false) || (iterLimit > iter)) {
+    iter++;
     console.log(`setTimeout for next Cypress call: ${delayTimeout}`);
-    setTimeout(callCypress, parseInt(delayTimeout));
+    setTimeout(callCypress, delayTimeout);
   } else {
     console.log("Done!");
     process.exit();
