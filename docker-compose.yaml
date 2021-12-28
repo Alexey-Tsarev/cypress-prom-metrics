@@ -14,10 +14,10 @@ services:
     environment:
       - TERM=xterm
       - DELAY_TIMEOUT=5000
-      - ITER_LIMIT=3
+      - ITER_LIMIT=1
       - CYPRESS_BASE_URL=http://nginx-stable
       - PUSH_GATEWAY_URL=http://push-gateway:9091
-      - PUSH_GATEWAY_JOB_NAME=test
+      - PUSH_GATEWAY_JOB_NAME=test:test
 
     labels:
       - SERVICE_NAME=cypress-prom-metrics
@@ -73,4 +73,29 @@ services:
 
     ports:
       - "9091:9091"
-  # End Nginx stable
+  # End Prometheus PushGateway
+
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+    environment:
+      - TERM=xterm
+
+    labels:
+      - SERVICE_NAME=prometheus
+
+    logging:
+      driver: journald
+      options:
+        tag: prometheus
+
+    ports:
+      - "9090:9090"
+    # End Prometheus
