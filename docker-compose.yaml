@@ -13,11 +13,13 @@ services:
 
     environment:
       - TERM=xterm
-      - DELAY_TIMEOUT=5000
-      - ITER_LIMIT=1
+      - DELAY_TIMEOUT=0
+      - ITER_LIMIT=10
       - CYPRESS_BASE_URL=http://nginx-stable
       - PUSH_GATEWAY_URL=http://push-gateway:9091
       - PUSH_GATEWAY_JOB_NAME=test:test
+      - METRICS_DEFAULT_LABEL=origin
+      - METRICS_DEFAULT_LABEL_VALUE=me:me
 
     labels:
       - SERVICE_NAME=cypress-prom-metrics

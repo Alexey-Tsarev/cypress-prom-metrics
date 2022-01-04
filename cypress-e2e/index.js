@@ -8,6 +8,8 @@ const delayTimeout = parseInt(process.env.DELAY_TIMEOUT) || 0;
 const iterLimit = parseInt(process.env.ITER_LIMIT) || false;
 const pushGatewayUrl = process.env.PUSH_GATEWAY_URL || false;
 const pushGatewayJobName = process.env.PUSH_GATEWAY_JOB_NAME || false;
+const metricsDefaultLabel = process.env.METRICS_DEFAULT_LABEL || false;
+const metricsDefaultLabelValue = process.env.METRICS_DEFAULT_LABEL_VALUE || false;
 
 if (process.env.CYPRESS_BASE_URL === undefined)
   process.env.CYPRESS_BASE_URL = "http://localhost"
@@ -19,6 +21,10 @@ const Registry = client.Registry;
 const register = new Registry();
 const Counter = client.Counter;
 const Gauge = client.Gauge;
+
+if ((metricsDefaultLabel !== false) && (metricsDefaultLabelValue !== false)) {
+  client.register.setDefaultLabels({ [metricsDefaultLabel]: metricsDefaultLabelValue });
+}
 
 const result = new Gauge({ name: 'result', help: 'result', labelNames: ['result'] });
 const startedTestsAt = new Counter({ name: 'startedTestsAt', help: 'startedTestsAt', labelNames: ['startedTestsAt'] });
@@ -48,7 +54,7 @@ const callCypress = async () => {
   await setMetricsFromResult(r);
 
   if (pushGatewayUrl !== false) {
-    console.log("Send data to PushGateway");
+    console.log(`Send data to PushGateway: ${pushGatewayUrl}`);
 
     await pushGateway
       .push({ jobName: pushGatewayJobName })
