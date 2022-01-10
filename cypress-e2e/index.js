@@ -122,8 +122,8 @@ const callCypress = async (test_name) => {
       .then(({ resp, body }) => {
         console.log(`PushGateway response code: ${resp.statusCode}`);
       })
-      .catch(err => {
-        console.log(`PushGateway error: ${err}`);
+      .catch((err) => {
+        console.error(`PushGateway error: ${err}`);
       });
   }
 
@@ -183,7 +183,7 @@ const setMetricsFromResult = async (r, test_name) => {
     }
   });
 
-  for (let i = 0; i < testsIter - 1; i++) {
+  for (let i = 0; i < tests.length; i++) {
     console.log(`Change dir for test: '${tests[i]}' to '${testsDir[i]}'`);
     process.chdir(testsDir[i]);
     await callCypress(tests[i]);
