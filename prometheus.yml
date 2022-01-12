@@ -10,6 +10,9 @@ scrape_configs:
       - targets:
           - 'push-gateway:9091'
     metric_relabel_configs:
-      - source_labels: [origin]
-        regex: 'me:me'
+#      - source_labels: [origin]
+#        regex: 'me:me'
+#        action: keep
+      - source_labels: [job]
+        regex: 'test:test3'
         action: keep

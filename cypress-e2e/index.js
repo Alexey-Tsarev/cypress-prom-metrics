@@ -7,7 +7,7 @@ const path = require('path');
 // Default values
 const listenPort = process.env.LISTEN_PORT || 8080;
 const delayTimeout = parseInt(process.env.DELAY_TIMEOUT) || 0;
-const iterLimit = parseInt(process.env.ITER_LIMIT) || false;
+const iterLimit = parseInt(process.env.ITER_LIMIT) || 1;
 const pushGatewayUrl = process.env.PUSH_GATEWAY_URL || false;
 const pushGatewayJobName = process.env.PUSH_GATEWAY_JOB_NAME || false;
 const metricsDefaultLabelName = process.env.METRICS_DEFAULT_LABEL_NAME || false;
@@ -24,7 +24,6 @@ const pushGateway = pushGatewayUrl !== false ? new client.Pushgateway(pushGatewa
 const server = express();
 const Registry = client.Registry;
 const register = new Registry();
-const Counter = client.Counter;
 const Gauge = client.Gauge;
 
 if ((metricsDefaultLabelName !== false) && (metricsDefaultLabelValue !== false)) {
@@ -91,23 +90,22 @@ const getArgs = async () => {
 
 let tests = [];
 let testsDir = [];
-let testsIter = 1;
 const getTests = async () => {
+  let testsNumber = 1;
   console.log("Tests list:");
   fs.readdirSync(cypressTestsDir).forEach(file => {
     if ((cypressTestName === false) || ((cypressTestName !== false) && (file === cypressTestName))) {
-      console.log(`${testsIter}. ${file}`);
+      console.log(`${testsNumber}. ${file}`);
       tests.push(file);
       testsDir.push(path.join(process.cwd(), cypressTestsDir, file));
-      testsIter++;
+      testsNumber++;
     }
   });
   console.log("End of list");
 };
 
-let iter = 1;
+let cypressTestsNumber = 1;
 const callCypress = async (test_name) => {
-  console.log(`Run Cypress (iteration: ${iter})`);
   let r = await cypress.run(cypressArgs);
   console.log("Cypress finished with results:");
   console.log(r);
@@ -118,8 +116,11 @@ const callCypress = async (test_name) => {
     console.log(`Send data to PushGateway: ${pushGatewayUrl}`);
 
     await pushGateway
-      .push({ jobName: pushGatewayJobName })
-      .then(({ resp, body }) => {
+      .push(
+        // { jobName: pushGatewayJobName }
+        { jobName: pushGatewayJobName + cypressTestsNumber }
+      )
+      .then(({ resp }) => {
         console.log(`PushGateway response code: ${resp.statusCode}`);
       })
       .catch((err) => {
@@ -127,13 +128,8 @@ const callCypress = async (test_name) => {
       });
   }
 
-  if ((iterLimit === false) || (iterLimit > iter)) {
-    iter++;
-    console.log(`setTimeout for next Cypress call: ${delayTimeout}`);
-    setTimeout(callCypress, delayTimeout);
-  } else {
-    console.log("Cypress test completed");
-  }
+  cypressTestsNumber++;
+  console.log("Cypress test completed");
 }
 
 const setMetricsFromResult = async (r, test_name) => {
@@ -167,12 +163,18 @@ const setMetricsFromResult = async (r, test_name) => {
   }
 }
 
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 (async () => {
   await getArgs();
   await getTests();
 
   server.listen(listenPort);
-  console.log(`Server is listening on port: ${listenPort}, metrics are exposed on /metrics endpoint`);
+  console.log(`Server is listening on '${listenPort}' port, metrics are exposed on '/metrics' endpoint`);
 
   server.get('/metrics', async (req, res) => {
     try {
@@ -186,9 +188,18 @@ const setMetricsFromResult = async (r, test_name) => {
   for (let i = 0; i < tests.length; i++) {
     console.log(`Change dir for test: '${tests[i]}' to '${testsDir[i]}'`);
     process.chdir(testsDir[i]);
-    await callCypress(tests[i]);
+
+    for (let iter = 1; iter <= iterLimit; iter++) {
+      console.log(`Run Cypress test: '${tests[i]}' (current test: ${iter}/${iterLimit}, total tests: ${cypressTestsNumber})`);
+      await callCypress(tests[i]);
+
+      if (delayTimeout > 0) {
+        console.log(`setTimeout for next Cypress call: ${delayTimeout}`);
+        await delay(delayTimeout);
+      }
+    }
   }
 
-  console.log("Done!");
+  console.log(`Tests finished. Tests number: ${cypressTestsNumber}`);
   process.exit();
 })();
