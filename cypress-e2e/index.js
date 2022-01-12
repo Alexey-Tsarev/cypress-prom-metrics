@@ -104,7 +104,7 @@ const getTests = async () => {
   console.log("End of list");
 };
 
-let cypressTestsNumber = 1;
+let cypressTestsNumber = 0;
 const callCypress = async (test_name) => {
   let r = await cypress.run(cypressArgs);
   console.log("Cypress finished with results:");
