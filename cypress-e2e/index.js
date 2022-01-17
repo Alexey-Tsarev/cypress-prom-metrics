@@ -12,23 +12,23 @@ const pushGatewayUrl = process.env.PUSH_GATEWAY_URL || false;
 const pushGatewayJobName = process.env.PUSH_GATEWAY_JOB_NAME || false;
 const metricsDefaultLabelName = process.env.METRICS_DEFAULT_LABEL_NAME || false;
 const metricsDefaultLabelValue = process.env.METRICS_DEFAULT_LABEL_VALUE || false;
-const cypressTestsDir = process.env.CYPRESS_TESTS_DIR || "tests";
-const cypressTestName = process.env.CYPRESS_TEST_NAME || false;
+const cypressRunSpecSeparately = (String(process.env.CYPRESS_RUN_SPEC_SEPARATELY).toLowerCase() === "true");
+const cypressSpecDir = process.env.CYPRESS_SPEC_DIR || path.join("cypress", "integration");
+const cypressSpecFileName = process.env.CYPRESS_SPEC_FILE_NAME || false;
 const cypressTestMetricsLabelName = process.env.CYPRESS_TEST_METRICS_LABEL_NAME || "test_name";
 
 if (process.env.CYPRESS_BASE_URL === undefined)
   process.env.CYPRESS_BASE_URL = "http://localhost"
 // End Default values
 
-const pushGateway = pushGatewayUrl !== false ? new client.Pushgateway(pushGatewayUrl) : false;
+const pushGateway = pushGatewayUrl ? new client.Pushgateway(pushGatewayUrl) : false;
 const server = express();
 const Registry = client.Registry;
 const register = new Registry();
 const Gauge = client.Gauge;
 
-if ((metricsDefaultLabelName !== false) && (metricsDefaultLabelValue !== false)) {
+if (metricsDefaultLabelName && metricsDefaultLabelValue)
   client.register.setDefaultLabels({ [metricsDefaultLabelName]: metricsDefaultLabelValue });
-}
 
 const result = new Gauge({
   name: 'result',
@@ -82,22 +82,31 @@ const totalSkipped = new Gauge({
 });
 
 let cypressArgs;
-const getArgs = async () => {
-  cypressArgs = await cypress.cli.parseRunArguments(process.argv.slice(2));
-  console.log(`Command line arguments: ${process.argv}`);
+const setCypressArgs = async (spec = false) => {
+  let args = process.argv.slice(2);
+
+  if (spec) {
+    args.push("--spec");
+    args.push(path.join(cypressSpecDir, spec));
+  }
+
+  cypressArgs = await cypress.cli.parseRunArguments(args);
   console.log(`Cypress args: ${JSON.stringify(cypressArgs)}`);
 };
 
-let tests = [];
-let testsDir = [];
-const getTests = async () => {
+let specs = [];
+let specsName = [];
+const getSpecs = async () => {
   let testsNumber = 1;
-  console.log("Tests list:");
-  fs.readdirSync(cypressTestsDir).forEach(file => {
-    if ((cypressTestName === false) || ((cypressTestName !== false) && (file === cypressTestName))) {
-      console.log(`${testsNumber}. ${file}`);
-      tests.push(file);
-      testsDir.push(path.join(process.cwd(), cypressTestsDir, file));
+  console.log("Spec files list:");
+  fs.readdirSync(cypressSpecDir).forEach(file => {
+    if ((cypressSpecFileName === false) || (cypressSpecFileName && (file === cypressSpecFileName))) {
+      specs.push(file)
+
+      let sName = file.substr(0, file.indexOf("."));
+      specsName.push(sName);
+
+      console.log(`${testsNumber}. ${file} (${sName})`);
       testsNumber++;
     }
   });
@@ -105,14 +114,14 @@ const getTests = async () => {
 };
 
 let cypressTestsNumber = 0;
-const callCypress = async (test_name) => {
+const runCypress = async (spec_name = false, test_name = "") => {
   let r = await cypress.run(cypressArgs);
   console.log("Cypress finished with results:");
   console.log(r);
 
   await setMetricsFromResult(r, test_name);
 
-  if (pushGatewayUrl !== false) {
+  if (pushGatewayUrl) {
     console.log(`Send data to PushGateway: ${pushGatewayUrl}`);
 
     await pushGateway
@@ -170,8 +179,7 @@ function delay(ms) {
 }
 
 (async () => {
-  await getArgs();
-  await getTests();
+  console.log(`Command line arguments: ${process.argv}`);
 
   server.listen(listenPort);
   console.log(`Server is listening on '${listenPort}' port, metrics are exposed on '/metrics' endpoint`);
@@ -185,13 +193,26 @@ function delay(ms) {
     }
   });
 
-  for (let i = 0; i < tests.length; i++) {
-    console.log(`Change dir for test: '${tests[i]}' to '${testsDir[i]}'`);
-    process.chdir(testsDir[i]);
+  let specsLen;
+  if (cypressRunSpecSeparately || cypressSpecFileName) {
+    await getSpecs();
+    specsLen = specs.length;
+  } else
+    specsLen = 1;
 
+  for (let i = 0; i < specsLen; i++) {
     for (let iter = 1; iter <= iterLimit; iter++) {
-      console.log(`Run Cypress test: '${tests[i]}' (current test: ${iter}/${iterLimit}, total tests: ${cypressTestsNumber})`);
-      await callCypress(tests[i]);
+      console.log(`Current test: ${iter}/${iterLimit}, completed tests: ${cypressTestsNumber}`);
+
+      if (cypressRunSpecSeparately || cypressSpecFileName) {
+        console.log(`Run Cypress, use '${specs[i]}' spec file`);
+        await setCypressArgs(specs[i]);
+        await runCypress(specs[i], specsName[i]);
+      } else {
+        console.log("Run Cypress");
+        await setCypressArgs();
+        await runCypress();
+      }
 
       if (delayTimeout > 0) {
         console.log(`setTimeout for next Cypress call: ${delayTimeout}`);
@@ -200,6 +221,6 @@ function delay(ms) {
     }
   }
 
-  console.log(`Tests finished. Tests number: ${cypressTestsNumber}`);
+  console.log(`Done. Tests finished number: ${cypressTestsNumber}`);
   process.exit();
 })();

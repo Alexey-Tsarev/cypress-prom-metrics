@@ -14,5 +14,5 @@ scrape_configs:
 #        regex: 'me:me'
 #        action: keep
       - source_labels: [job]
-        regex: 'test:test3'
+        regex: 'test:test0'
         action: keep

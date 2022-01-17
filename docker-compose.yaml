@@ -20,7 +20,8 @@ services:
       - PUSH_GATEWAY_JOB_NAME=test:test
       - METRICS_DEFAULT_LABEL_NAME=origin
       - METRICS_DEFAULT_LABEL_VALUE=me:me
-      #- CYPRESS_TEST_NAME=home_page
+      - CYPRESS_RUN_SPEC_SEPARATELY=true
+      #- CYPRESS_SPEC_FILE_NAME=home-page.spec.js
 
     labels:
       - SERVICE_NAME=cypress-prom-metrics

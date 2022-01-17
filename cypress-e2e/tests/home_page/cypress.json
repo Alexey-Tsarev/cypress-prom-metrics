@@ -1,6 +1,0 @@
-{
-  "reporter": "junit",
-  "reporterOptions": {
-    "mochaFile": "cypress/results/output.xml"
-  }
-}
